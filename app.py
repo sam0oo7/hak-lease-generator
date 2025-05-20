@@ -6,6 +6,8 @@ from docx.shared import Inches, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 import re
 import subprocess, os, tempfile
+from datetime import datetime, date
+
 
 # point this at your installed LibreOffice soffice.exe:
 LIBREOFFICE = r"C:\Program Files\LibreOffice\program\soffice.exe"
@@ -308,10 +310,30 @@ footer_text = st.text_input("Footer text", "Confidential – For intended recipi
 
 with st.form("lease_form"):
 
-    with st.expander("📅 Important Dates", expanded=True):
-        lease_start  = st.date_input("Lease Start Date", date.today())
-        commencement = st.date_input("Commencement Date", lease_start)
-        signature    = st.date_input("Signature Date", date.today())
+    with st.expander("Important Dates"):
+        lease_start_str  = st.text_input(
+            "Lease Start Date (DD/MM/YYYY)", 
+            datetime.today().strftime("%d/%m/%Y")
+        )
+        # parse it back if you need a date object:
+        lease_start = datetime.strptime(lease_start_str, "%d/%m/%Y").date()
+
+        commencement_str = st.text_input(
+            "Commencement Date (DD/MM/YYYY)",
+            lease_start_str
+        )
+        commencement = datetime.strptime(
+            commencement_str, "%d/%m/%Y"
+        ).date()
+
+        signature_str = st.text_input(
+            "Signature Date (DD/MM/YYYY)",
+            datetime.today().strftime("%d/%m/%Y")
+        )
+        signature = datetime.strptime(
+            signature_str, "%d/%m/%Y"
+        ).date()
+
 
     with st.expander("🏠 Landlord Details"):
         landlord_name           = st.text_input("Landlord Name", "Samad A Kaka")

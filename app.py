@@ -9,7 +9,29 @@ import subprocess, os, tempfile
 from datetime import datetime, date
 
 
-import shutil, os
+# ─── SIMPLE AUTH ────────────────────────────────────────────────────────────
+# hard-coded credentials (don’t use in prod!)
+USERNAME = "hak"
+PASSWORD = "1234"
+
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if not st.session_state.logged_in:
+    st.title("🔒 Please log in")
+    user = st.text_input("Username")
+    pwd  = st.text_input("Password", type="password")
+    if st.button("Log in"):
+        if user == USERNAME and pwd == PASSWORD:
+            st.session_state.logged_in = True
+            st.experimental_rerun()
+        else:
+            st.error("❌ Invalid credentials")
+    st.stop()
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+import shutil
 
 # if the 'soffice' command exists in PATH, use that (Cloud/Linux),
 # otherwise assume we're on Windows and use your existing path.

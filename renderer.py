@@ -292,24 +292,23 @@ def render_document(doc, body, fill_ins, user_pattern, ctx):
                     p.add_run(part)
             continue
 
-
-
-
-        # 8.2) Lettered sub-items: indent under clause
-        if re.match(r"^[a-z]\.\s", line.strip()):
+        # 8.2) Lettered sub-items: hanging indent, just like 8.1
+        stripped = line.lstrip()
+        if re.match(r"^[a-z]\.\s", stripped):
             p = doc.add_paragraph()
-            p.paragraph_format.left_indent = Inches(0.25)
-            for part in user_pattern.split(line):
+            # push it out under the clause text
+            p.paragraph_format.left_indent       = Inches(0.50)
+            # negative first‐line indent so wrapped text lines up under the words
+            p.paragraph_format.first_line_indent = Inches(-0.25)
+
+            # now render the “a.” or “b.” and the rest, underlining fill-ins as before
+            for part in user_pattern.split(stripped):
                 if part in fill_ins:
-                    # apply PAD/BLANK_LEN logic
-                    if part.strip():
-                        text = " " + (f"{PAD}{part}{PAD}" if part.strip() else PAD * BLANK_LEN)
-                    else:
-                        text = PAD * BLANK_LEN
-                    run = p.add_run(text)
-                    run.font.name = "Courier New"
-                    run.font.size = Pt(12)
-                    run.underline = True
+                    text = f"{PAD}{part}{PAD}" if part.strip() else PAD * BLANK_LEN
+                    r = p.add_run(text)
+                    r.font.name = "Courier New"
+                    r.font.size = Pt(12)
+                    r.underline = True
                 else:
                     p.add_run(part)
             continue

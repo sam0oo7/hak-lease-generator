@@ -275,7 +275,7 @@ Address for Notice
     
     b. the address for service of the Landlord is {landlord_notice_address} both during this tenancy and after it is terminated. The phone number of the Landlord is {landlord_phone}.
 
-The Landlord or the Tenant may, on written notice to each other, change their respective addresses for notice under this Lease.
+    The Landlord or the Tenant may, on written notice to each other, change their respective addresses for notice under this Lease.
 
 Limited Liability Beyond Insurance Coverage
 71. Notwithstanding anything contained in this Lease to the contrary, for issues relating to this Lease, presuming the Landlord obtains its required insurance, the Landlord will not be liable for loss of Tenant business income, Tenant moving expenses, and consequential, incidental, punitive and indirect damages which are not covered by the Landlord’s insurance.

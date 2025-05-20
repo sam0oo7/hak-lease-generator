@@ -14,7 +14,7 @@ from num2words import num2words
 # ─── SIMPLE AUTH ────────────────────────────────────────────────────────────
 # hard-coded credentials (don’t use in prod!)
 USERNAME = "hak"
-PASSWORD = "1234"
+PASSWORD = "123456789"
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False

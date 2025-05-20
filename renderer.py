@@ -270,12 +270,29 @@ def render_document(doc, body, fill_ins, user_pattern, ctx):
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             continue
 
+            # (NEW) — totally left-aligned “consideration” paragraph
+        if line.startswith("IN CONSIDERATION"):
+            p = doc.add_paragraph()
+            p.paragraph_format.left_indent      = Inches(0)
+            p.paragraph_format.first_line_indent = Inches(0)
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            # then copy in your normal fill-in logic:
+            for part in user_pattern.split(line):
+                if part in fill_ins:
+                    run = p.add_run(f"{UNDER}{part}{UNDER}")
+                    run.font.name = "Courier New"
+                    run.font.size = Pt(12)
+                    run.underline = True
+                else:
+                    p.add_run(part)
+            continue
+
         # 10) Fallback: justified paragraph
         p = doc.add_paragraph()
         # exactly match your numbered‐clause indent…
         p.paragraph_format.left_indent      = Inches(0.20)
         p.paragraph_format.first_line_indent = Inches(-0.20)
-        p.paragraph_format.alignment         = WD_ALIGN_PARAGRAPH.JUSTIFY
+        p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
         for part in user_pattern.split(line):
             if part in fill_ins:
                 run = p.add_run(f"{UNDER}{part}{UNDER}")
@@ -284,3 +301,6 @@ def render_document(doc, body, fill_ins, user_pattern, ctx):
                 run.underline = True
             else:
                 p.add_run(part)
+
+        
+

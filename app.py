@@ -7,6 +7,8 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 import re
 import subprocess, os, tempfile
 from datetime import datetime, date
+from num2words import num2words
+
 
 
 # ─── SIMPLE AUTH ────────────────────────────────────────────────────────────
@@ -48,12 +50,12 @@ from renderer import render_document
 LEASE_TEMPLATE = """Commercial Lease Agreement
 
 THIS LEASE (this "Lease") dated this {lease_day} day of {lease_month}, {lease_year}
-
+[LINE_BREAK]
 BETWEEN:
-
+[LINE_BREAK]
 {landlord_name} of {landlord_company}
 Telephone: {landlord_phone}
-Fax: ___________
+Fax: {fax_number}
 (the "Landlord")
 OF THE FIRST PART
 -AND-
@@ -61,7 +63,7 @@ OF THE FIRST PART
 {tenant_name} of {tenant_company}
 (the "Tenant")
 OF THE SECOND PART
-[LINE_BREAK]
+
 
 IN CONSIDERATION OF the Landlord leasing certain premises to the Tenant, the Tenant leasing those premises from the Landlord and the mutual benefits and obligations set forth in this Lease, the receipt and sufficiency of which consideration is hereby acknowledged, the Parties to this Lease (the "Parties") agree as follows:
 [LINE_BREAK]
@@ -76,9 +78,8 @@ c. Tenant: {tenant_name}
 d. Address of: {tenant_address}
 e. Company Number of: {tenant_company_number}
 f. Commencement Date of Lease: {lease_commencement_date}
-[PAGE_BREAK]
 g. Base Rent: £{base_rent} payable per month  
-     (Landlord’s Note: {base_rent_note})
+         (Landlord’s Note: {base_rent_note})
 h. Permitted Use Address of Premises: {permitted_use_address}
 i. Advance Rent: First and last month’s rent
 j. Security/Damage Deposit: £{security_deposit}
@@ -94,7 +95,7 @@ Under this Lease
 5. The Landlord reserves the right, when necessary, by reason of accident or in order to make repairs, alterations or improvements relating to the Premises or to other portions of the Building to cause temporary obstruction to the Common Areas and Facilities as reasonably necessary and to interrupt or suspend the supply of electricity, water and other services to the Premises until the repairs, alterations or improvements have been completed. There will be no abatement in rent because of such obstruction, interruption or suspension provided that the repairs, alterations or improvements are made as expeditiously as is reasonably possible.
 
 Term
-6. The term of the Lease is a periodic tenancy commencing on {lease_commencement_date} and continuing for the period of {lease_duration} ({lease_duration}) years
+6. The term of the Lease is a periodic tenancy commencing on {lease_commencement_date} and continuing for the period of {lease_duration_word} ({lease_duration}) years
 
 Security of Tenure
 7. The Landlord and the Tenant have agreed that sections 24 to 28 of the Landlord and Tenant Act 1954 do not apply to this Lease.
@@ -370,6 +371,7 @@ with st.form("lease_form"):
         landlord_phone          = st.text_input("Landlord Phone", "07951209900")
         landlord_address        = st.text_input("Landlord Address", "19, St Michaels Ave, Wembley HA9 6SJ")
         landlord_notice_address = st.text_input("Landlord Notice Address", landlord_address)
+        fax_number              = st.text_input("Landlord Fax", "")
 
     with st.expander("👥 Tenant Details"):
         tenant_name           = st.text_input("Tenant Name", "Tenant Name comes here")
@@ -408,27 +410,46 @@ if submitted:
     sg = format_date(signature)
     ctx = {
         # Dates
-        "lease_day": ls["day"], "lease_month": ls["month"], "lease_year": ls["year"],
+        "lease_day":               ls["day"],
+        "lease_month":             ls["month"],
+        "lease_year":              ls["year"],
         "lease_commencement_date": cm["full"],
-        "signature_day": sg["day"], "signature_month": sg["month"], "signature_year": sg["year"],
+        "signature_day":           sg["day"],
+        "signature_month":         sg["month"],
+        "signature_year":          sg["year"],
+
         # Landlord
-        "landlord_name": landlord_name, "landlord_company": landlord_company,
-        "landlord_phone": landlord_phone, "landlord_address": landlord_address,
-        "landlord_notice_address": landlord_notice_address,
+        "landlord_name":            landlord_name,
+        "landlord_company":         landlord_company,
+        "landlord_phone":           landlord_phone,
+        "fax_number":               fax_number.strip() or "—",
+        "landlord_address":         landlord_address,
+        "landlord_notice_address":  landlord_notice_address,
+
         # Tenant
-        "tenant_name": tenant_name, "tenant_company": tenant_company,
-        "tenant_address": tenant_address, "tenant_company_number": tenant_company_number,
-        "tenant_signatory": tenant_signatory, "tenant_phone": tenant_phone,
-        "tenant_notice_address": tenant_notice_address,
+        "tenant_name":              tenant_name,
+        "tenant_company":           tenant_company,
+        "tenant_address":           tenant_address,
+        "tenant_company_number":    tenant_company_number,
+        "tenant_signatory":         tenant_signatory,
+        "tenant_phone":             tenant_phone,
+        "tenant_notice_address":    tenant_notice_address,
+
         # Financials
-        "base_rent": f"{base_rent:,}", 
-        "base_rent_note": base_rent_note,
-        "permitted_use": permitted_use,
-        "permitted_use_address": permitted_use_address,
-        "security_deposit": f"{security_deposit:,}", "rent_due_day": rent_due_day,
-        "review_years": str(review_years), "lease_duration": str(lease_duration),
+        "base_rent":                f"{base_rent:,}",
+        "base_rent_note":           base_rent_note,
+        "permitted_use":            permitted_use,
+        "permitted_use_address":    permitted_use_address,
+        "security_deposit":         f"{security_deposit:,}",
+        "rent_due_day":             rent_due_day,
+        "review_years":             str(review_years),
+
+        # Lease duration: word + numeric
+        "lease_duration_word":      num2words(lease_duration, to="cardinal").upper(),
+        "lease_duration":           str(lease_duration),
+
         # Business
-        "business_name": business_name,
+        "business_name":            business_name,
     }
 
     # Fill template & create doc

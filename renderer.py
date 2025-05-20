@@ -17,9 +17,10 @@ PAGE_TITLES = {
 
 }
 
-# Underscored blanks
-UNDER = "_" * 2
 
+# constants at top of module
+PAD = " "
+BLANK_LEN = 20
 def render_document(doc, body, fill_ins, user_pattern, ctx):
     """
     Renders the lease body into a Word document with correct formatting.
@@ -37,10 +38,22 @@ def render_document(doc, body, fill_ins, user_pattern, ctx):
             p.alignment = WD_ALIGN_PARAGRAPH.LEFT
             for part in user_pattern.split(line):
                 if part in fill_ins:
-                    run = p.add_run(f"{UNDER}{part}{UNDER}")
+
+                    # inside your for-part loop:
+                    if part.strip():
+                        # there is user text → pad it and underline
+                        # preserve the one-space indent at the start of the line
+                        text = " " + (f"{PAD}{part}{PAD}" if part.strip() else PAD * BLANK_LEN)
+
+                    else:
+                        # empty fill-in → underline a run of spaces
+                        text = PAD * BLANK_LEN
+
+                    run = p.add_run(text)
                     run.font.name = "Courier New"
                     run.font.size = Pt(12)
                     run.underline = True
+
                 else:
                     p.add_run(part)
             continue
@@ -139,10 +152,22 @@ def render_document(doc, body, fill_ins, user_pattern, ctx):
             rest = line[len("THIS LEASE"):]
             for part in user_pattern.split(rest):
                 if part in fill_ins:
-                    run = p.add_run(f"{UNDER}{part}{UNDER}")
+
+                    # inside your for-part loop:
+                    if part.strip():
+                        # there is user text → pad it and underline
+                        # preserve the one-space indent at the start of the line
+                        text = " " + (f"{PAD}{part}{PAD}" if part.strip() else PAD * BLANK_LEN)
+
+                    else:
+                        # empty fill-in → underline a run of spaces
+                        text = PAD * BLANK_LEN
+
+                    run = p.add_run(text)
                     run.font.name = "Courier New"
                     run.font.size = Pt(12)
                     run.underline = True
+
                 else:
                     p.add_run(part)
             continue
@@ -153,39 +178,66 @@ def render_document(doc, body, fill_ins, user_pattern, ctx):
             p.paragraph_format.space_before = Pt(12)
             continue
 
-                # center the “-AND-” separator
+        # 5.1) center the “-AND-” separator
         if line.strip() == "-AND-":
             p = doc.add_paragraph(line)
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             continue
-
 
         # 6) Telephone + Fax on one centred line
         if line.startswith("Telephone:"):
             p = doc.add_paragraph()
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-            # Telephone run
+            # ─── Telephone ─────────────────────────────────
             label, _, val = line.partition(":")
-            lab = p.add_run(label + ":")
-            lab.bold = True
-            run = p.add_run(f" {UNDER}{val.strip()}{UNDER}   ")
-            run.font.name = "Courier New"
-            run.font.size = Pt(12)
-            run.underline = True
-            continue
+            tel_lab = p.add_run(label + ": ")
+            tel_lab.bold = True
 
-        if line.startswith("Fax:"):
-            # append Fax to the last paragraph
-            p = doc.paragraphs[-1]
-            label, _, val = line.partition(":")
-            lab = p.add_run(label + ":")
-            lab.bold = True
-            run = p.add_run(f" {UNDER}{val.strip()}{UNDER}")
-            run.font.name = "Courier New"
-            run.font.size = Pt(12)
-            run.underline = True
+            tel_text = f"{PAD}{val.strip()}{PAD}" if val.strip() else PAD * BLANK_LEN
+            run_tel = p.add_run(tel_text)
+            run_tel.font.name = "Courier New"
+            run_tel.font.size = Pt(12)
+            run_tel.underline = True
+
+             # spacer between telephone and fax
+            p.add_run("   ")
+
+            # Fax label + value
+            fax_lab = p.add_run("Fax: ")
+            fax_lab.bold = True
+
+            fax_val = ctx.get("fax_number", "").strip()
+            if fax_val and fax_val != "—":
+                # user provided a fax → render it underlined normally
+                fax_text = f"{PAD}{fax_val}{PAD}"
+                run_fax = p.add_run(fax_text)
+                run_fax.font.name = "Courier New"
+                run_fax.font.size = Pt(12)
+                run_fax.underline = True
+            else:
+                # blank: build a fixed‐width field of underscores with the dash in the middle
+                total_chars = 12
+                left  = (total_chars - 1) // 2   # e.g. 5
+                right = total_chars - left - 1   # e.g. 6
+                # build "__..._-__..."
+                blank_field = "_" * left + "-" + "_" * right
+                run_fax = p.add_run(blank_field)
+                run_fax.font.name = "Courier New"
+                run_fax.font.size = Pt(12)
+                run_fax.underline = True
+                # no run_fax.underline needed, underscores are visible
+
+            # spacer if you still need it
+            p.add_run("   ")
             continue
+                
+
+
+
+
+
+
 
 
         # 7) RIGHT-align uppercase PART text
@@ -209,47 +261,58 @@ def render_document(doc, body, fill_ins, user_pattern, ctx):
             r.font.color.rgb = RGBColor(0, 112, 192)
             continue
 
-        # 8.1) Main numbered clause with hanging indent
-        if re.match(r"^\d+\.\s", line):
-            # split off the “1.” and the rest
-            number, rest = line.split(" ", 1)
+
+        # 8.1) Main numbered clauses with hanging indent
+        # strip off any leading spaces so " 10. ..." still matches
+        stripped = line.lstrip()
+        if re.match(r"^\d+\.\s", stripped):
+            # split number from the rest, then trim any extra padding
+            number, rest = stripped.split(" ", 1)
+            rest = rest.lstrip()
+
+            # start the paragraph with a hanging indent
             p = doc.add_paragraph()
-            # set a hanging indent of 0.25"
-            p.paragraph_format.left_indent = Inches(0.25)
+            p.paragraph_format.left_indent       = Inches(0.25)
             p.paragraph_format.first_line_indent = Inches(-0.25)
 
-            # add the number flush
+            # write the clause number
             run = p.add_run(f"{number}  ")
-            run.bold = False
+            run.font.name = "Times New Roman"
+            run.font.size = Pt(12)
 
-            # then the text, including fill‐ins
+            # write the clause text, underlining any fill-ins
             for part in user_pattern.split(rest):
                 if part in fill_ins:
-                    r = p.add_run(f"{UNDER}{part}{UNDER}")
+                    text = f"{PAD}{part}{PAD}" if part.strip() else PAD * BLANK_LEN
+                    r = p.add_run(text)
                     r.font.name = "Courier New"
                     r.font.size = Pt(12)
                     r.underline = True
                 else:
                     p.add_run(part)
             continue
+
+
 
 
         # 8.2) Lettered sub-items: indent under clause
         if re.match(r"^[a-z]\.\s", line.strip()):
             p = doc.add_paragraph()
-            # match the same indent you gave your “1.” clause
             p.paragraph_format.left_indent = Inches(0.25)
             for part in user_pattern.split(line):
                 if part in fill_ins:
-                    r = p.add_run(f"{UNDER}{part}{UNDER}")
-                    r.font.name = "Courier New"
-                    r.font.size = Pt(12)
-                    r.underline = True
+                    # apply PAD/BLANK_LEN logic
+                    if part.strip():
+                        text = " " + (f"{PAD}{part}{PAD}" if part.strip() else PAD * BLANK_LEN)
+                    else:
+                        text = PAD * BLANK_LEN
+                    run = p.add_run(text)
+                    run.font.name = "Courier New"
+                    run.font.size = Pt(12)
+                    run.underline = True
                 else:
                     p.add_run(part)
             continue
-
-
 
         # 9) Centered lines containing fill items
         if " of " in line and any(term in line for term in fill_ins):
@@ -257,10 +320,20 @@ def render_document(doc, body, fill_ins, user_pattern, ctx):
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             for part in user_pattern.split(line):
                 if part in fill_ins:
-                    run = p.add_run(f"{UNDER}{part}{UNDER}")
+
+                    # inside your for-part loop:
+                    if part.strip():
+                        # there is user text → pad it and underline
+                        text = " " + (f"{PAD}{part}{PAD}" if part.strip() else PAD * BLANK_LEN)
+                    else:
+                        # empty fill-in → underline a run of spaces
+                        text = PAD * BLANK_LEN
+
+                    run = p.add_run(text)
                     run.font.name = "Courier New"
                     run.font.size = Pt(12)
                     run.underline = True
+
                 else:
                     p.add_run(part)
             continue
@@ -279,10 +352,20 @@ def render_document(doc, body, fill_ins, user_pattern, ctx):
             # then copy in your normal fill-in logic:
             for part in user_pattern.split(line):
                 if part in fill_ins:
-                    run = p.add_run(f"{UNDER}{part}{UNDER}")
+
+                    # inside your for-part loop:
+                    if part.strip():
+                        # there is user text → pad it and underline
+                        text = " " + (f"{PAD}{part}{PAD}" if part.strip() else PAD * BLANK_LEN)
+                    else:
+                        # empty fill-in → underline a run of spaces
+                        text = PAD * BLANK_LEN
+
+                    run = p.add_run(text)
                     run.font.name = "Courier New"
                     run.font.size = Pt(12)
                     run.underline = True
+
                 else:
                     p.add_run(part)
             continue
@@ -295,10 +378,20 @@ def render_document(doc, body, fill_ins, user_pattern, ctx):
         p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
         for part in user_pattern.split(line):
             if part in fill_ins:
-                run = p.add_run(f"{UNDER}{part}{UNDER}")
+
+                # inside your for-part loop:
+                if part.strip():
+                    # there is user text → pad it and underline
+                    text = " " + (f"{PAD}{part}{PAD}" if part.strip() else PAD * BLANK_LEN)
+                else:
+                    # empty fill-in → underline a run of spaces
+                    text = PAD * BLANK_LEN
+
+                run = p.add_run(text)
                 run.font.name = "Courier New"
                 run.font.size = Pt(12)
                 run.underline = True
+
             else:
                 p.add_run(part)
 

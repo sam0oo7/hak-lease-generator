@@ -54,8 +54,7 @@ THIS LEASE (this "Lease") dated this {lease_day} day of {lease_month}, {lease_ye
 BETWEEN:
 [LINE_BREAK]
 {landlord_name} of {landlord_company}
-Telephone: {landlord_phone}
-Fax: {fax_number}
+Telephone: {landlord_phone} 
 (the "Landlord")
 OF THE FIRST PART
 -AND-
@@ -340,7 +339,7 @@ footer_text = st.text_input("Footer text", "Confidential – For intended recipi
 
 with st.form("lease_form"):
 
-    with st.expander("Important Dates"):
+    with st.expander("📅 Important Dates"):
         lease_start_str  = st.text_input(
             "Lease Start Date (DD/MM/YYYY)", 
             datetime.today().strftime("%d/%m/%Y")
@@ -393,7 +392,7 @@ with st.form("lease_form"):
         lease_duration        = st.number_input("Lease Duration (yrs)", 1, 30, 4)
 
     business_name    = st.text_input("Business Name", tenant_company)
-    submitted        = st.form_submit_button("Generate .docx")
+    submitted        = st.form_submit_button("Generate Word & PDF File")
 
 if submitted:
     # Date validation

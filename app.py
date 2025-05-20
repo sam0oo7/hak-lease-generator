@@ -9,8 +9,15 @@ import subprocess, os, tempfile
 from datetime import datetime, date
 
 
-# point this at your installed LibreOffice soffice.exe:
-LIBREOFFICE = r"C:\Program Files\LibreOffice\program\soffice.exe"
+import shutil, os
+
+# if the 'soffice' command exists in PATH, use that (Cloud/Linux),
+# otherwise assume we're on Windows and use your existing path.
+if shutil.which("soffice"):
+    LIBREOFFICE = "soffice"
+else:
+    LIBREOFFICE = r"C:\Program Files\LibreOffice\program\soffice.exe"
+
 
 
 from renderer import render_document
